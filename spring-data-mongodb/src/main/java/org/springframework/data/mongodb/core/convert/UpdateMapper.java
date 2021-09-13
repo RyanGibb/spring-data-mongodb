@@ -42,6 +42,7 @@ import org.springframework.lang.Nullable;
  * @author Oliver Gierke
  * @author Christoph Strobl
  * @author Mark Paluch
+ * @author Ryan Gibb
  */
 public class UpdateMapper extends QueryMapper {
 
@@ -63,9 +64,9 @@ public class UpdateMapper extends QueryMapper {
 	 * @see org.springframework.data.mongodb.core.convert.QueryMapper#getMappedObject(Bson, MongoPersistentEntity)
 	 */
 	@Override
-	public Document getMappedObject(Bson query, @Nullable MongoPersistentEntity<?> entity) {
+	protected Document getMappedObjectRecurse(Bson query, @Nullable MongoPersistentEntity<?> entity) {
 
-		Document document = super.getMappedObject(query, entity);
+		Document document = super.getMappedObjectRecurse(query, entity);
 
 		boolean hasOperators = false;
 		boolean hasFields = false;
@@ -156,7 +157,7 @@ public class UpdateMapper extends QueryMapper {
 
 		if (isQuery(rawValue)) {
 			return createMapEntry(field,
-					super.getMappedObject(((Query) rawValue).getQueryObject(), field.getPropertyEntity()));
+					super.getMappedObjectRecurse(((Query) rawValue).getQueryObject(), field.getPropertyEntity()));
 		}
 
 		if (isUpdateModifier(rawValue)) {

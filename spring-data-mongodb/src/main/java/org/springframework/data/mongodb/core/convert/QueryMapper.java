@@ -71,6 +71,7 @@ import com.mongodb.DBRef;
  * @author Mark Paluch
  * @author David Julia
  * @author Divya Srivastava
+ * @author Ryan Gibb
  */
 public class QueryMapper {
 
@@ -120,6 +121,15 @@ public class QueryMapper {
 	 */
 	@SuppressWarnings("deprecation")
 	public Document getMappedObject(Bson query, @Nullable MongoPersistentEntity<?> entity) {
+	  return getMappedObjectRecurse(query, entity);
+	}
+
+	protected Document getMappedObjectRecurse(Bson query, Optional<? extends MongoPersistentEntity<?>> entity) {
+	  return getMappedObjectRecurse(query, entity.orElse(null));
+	}
+
+	@SuppressWarnings("deprecation")
+	protected Document getMappedObjectRecurse(Bson query, @Nullable MongoPersistentEntity<?> entity) {
 
 		if (isNestedKeyword(query)) {
 			return getMappedKeyword(new Keyword(query), entity);
@@ -317,7 +327,7 @@ public class QueryMapper {
 		Object value;
 
 		if (rawValue instanceof MongoExpression) {
-			return createMapEntry(key, getMappedObject(((MongoExpression) rawValue).toDocument(), field.getEntity()));
+			return createMapEntry(key, getMappedObjectRecurse(((MongoExpression) rawValue).toDocument(), field.getEntity()));
 		}
 
 		if (isNestedKeyword(rawValue) && !field.isIdField()) {
@@ -366,7 +376,7 @@ public class QueryMapper {
 			List<Object> newConditions = new ArrayList<>();
 
 			for (Object condition : conditions) {
-				newConditions.add(isDocument(condition) ? getMappedObject((Document) condition, entity)
+				newConditions.add(isDocument(condition) ? getMappedObjectRecurse((Document) condition, entity)
 						: convertSimpleOrDocument(condition, entity));
 			}
 
@@ -437,7 +447,7 @@ public class QueryMapper {
 				} else if (valueDbo.containsField("$ne")) {
 					resultDbo.put("$ne", convertId(valueDbo.get("$ne"), getIdTypeForField(documentField)));
 				} else {
-					return getMappedObject(resultDbo, Optional.empty());
+					return getMappedObjectRecurse(resultDbo, Optional.empty());
 				}
 				return resultDbo;
 			}
@@ -456,7 +466,7 @@ public class QueryMapper {
 				} else if (valueDbo.containsKey("$ne")) {
 					resultDbo.put("$ne", convertId(valueDbo.get("$ne"), getIdTypeForField(documentField)));
 				} else {
-					return getMappedObject(resultDbo, Optional.empty());
+					return getMappedObjectRecurse(resultDbo, Optional.empty());
 				}
 				return resultDbo;
 
@@ -542,7 +552,7 @@ public class QueryMapper {
 		}
 
 		if (isDocument(source)) {
-			return getMappedObject((Document) source, entity);
+			return getMappedObjectRecurse((Document) source, entity);
 		}
 
 		if (source instanceof BasicDBList) {
@@ -550,7 +560,7 @@ public class QueryMapper {
 		}
 
 		if (isDBObject(source)) {
-			return getMappedObject((BasicDBObject) source, entity);
+			return getMappedObjectRecurse((BasicDBObject) source, entity);
 		}
 
 		if (source instanceof BsonValue) {
@@ -566,7 +576,7 @@ public class QueryMapper {
 				String key = ObjectUtils.nullSafeToString(converter.convertToMongoType(it.getKey()));
 
 				if (it.getValue() instanceof Document) {
-					map.put(key, getMappedObject((Document) it.getValue(), entity));
+					map.put(key, getMappedObjectRecurse((Document) it.getValue(), entity));
 				} else {
 					map.put(key, delegateConvertToMongoType(it.getValue(), entity));
 				}
